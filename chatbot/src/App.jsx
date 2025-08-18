@@ -55,7 +55,7 @@ function App() {
   return (
     <div className="app">
       <div className="chat-wrapper">
-        <div className="chat-header">🤖 Personal Chatbot</div>
+        <div className="chat-header">🤖 Amir's Personal Chatbot</div>
 
         <div className="chat-box">
           {messages.map((msg, idx) => (
