@@ -1,106 +1,92 @@
 import React, { useState, useRef, useEffect } from "react";
-import { motion } from "framer-motion";
 import "./App.css";
 
-export default function App() {
+function App() {
+  const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
-  const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const chatEndRef = useRef(null);
 
-  const scrollToBottom = () => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  useEffect(scrollToBottom, [messages]);
-
   const sendMessage = async () => {
-    if (!input.trim()) return;
-    const userMessage = { sender: "user", text: input };
-    setMessages((prev) => [...prev, userMessage]);
-    setInput("");
+    if (!message.trim()) return;
+
+    // Add user message to chat
+    const userMsg = { sender: "user", text: message };
+    setMessages((prev) => [...prev, userMsg]);
+    setMessage("");
     setLoading(true);
 
     try {
-      const res = await fetch("https://portfolio-backend-d8e1.onrender.com/ask", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: userMessage.text }),
-      });
+      const res = await fetch(
+        "https://amirfaishal.app.n8n.cloud/webhook/24f606ab-f629-480a-b26e-cae581c2718f",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message }),
+        }
+      );
 
       const data = await res.json();
 
-      if (data.answer) {
-        setMessages((prev) => [...prev, { sender: "bot", text: data.answer }]);
-      } else {
-        setMessages((prev) => [...prev, { sender: "bot", text: "⚠️ No answer found." }]);
-      }
-    } catch (err) {
-      console.error(err);
+      // Clean response (remove leading "=" if present)
+      const cleanOutput = (data.output || "⚠️ No response from AI.").replace(/^=/, "");
+
+      const botMsg = {
+        sender: "bot",
+        text: cleanOutput,
+      };
+      setMessages((prev) => [...prev, botMsg]);
+    } catch (error) {
+      console.error(error);
       setMessages((prev) => [
         ...prev,
-        { sender: "bot", text: "⚠️ Error: Could not connect to server." },
+        { sender: "bot", text: "❌ Error connecting to webhook" },
       ]);
-    } finally {
-      setLoading(false);
     }
+
+    setLoading(false);
   };
 
-  const handleKeyDown = (e) => {
-    if (e.key === "Enter") sendMessage();
-  };
+  // Auto scroll to bottom
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, loading]);
 
   return (
-    <div className="app-wrapper">
-      <nav className="navbar">
-        <div className="navbar-title">Amir's AI Assistant</div>
-      </nav>
+    <div className="app">
+      <div className="chat-wrapper">
+        <div className="chat-header">🤖 Personal Chatbot</div>
 
-      <header className="intro">
-        <h1>Welcome to my smart resume assistant</h1>
-        <p>Ask anything about Amir’s professional experience, skills, and projects.</p>
-      </header>
-
-      <div className="chat-container">
-        <motion.div
-          className="chat-window"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-        >
-          {messages.map((msg, i) => (
-            <motion.div
-              key={i}
-              className={`message ${msg.sender}`}
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ duration: 0.3 }}
+        <div className="chat-box">
+          {messages.map((msg, idx) => (
+            <div
+              key={idx}
+              className={`message ${msg.sender === "user" ? "user" : "bot"}`}
             >
               {msg.text}
-            </motion.div>
+            </div>
           ))}
-          {loading && (
-            <motion.div
-              className="message bot typing"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-            >
-              Typing...
-            </motion.div>
-          )}
+
+          {loading && <div className="typing">AI is typing...</div>}
+
           <div ref={chatEndRef} />
-        </motion.div>
-        <div className="input-bar">
+        </div>
+
+        <div className="input-container">
           <input
             type="text"
-            placeholder="Ask me about my resume..."
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
+            placeholder="Type your message..."
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && sendMessage()}
           />
-          <button onClick={sendMessage}>Send</button>
+          <button onClick={sendMessage} disabled={loading}>
+            {loading ? "..." : "Send"}
+          </button>
         </div>
-        <p>!!! Sometimes it may not answer exactly to the question as it has data of only my resume</p>
       </div>
     </div>
   );
 }
+
+export default App;
